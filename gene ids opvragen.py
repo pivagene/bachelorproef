@@ -19,7 +19,7 @@ def get_gene_id(id, gene_name):
 # lees de soorten uit de database in 
 species = pd.read_csv('AMP_species_list.csv')
 search = species[['ID']].loc[0:4941]
-# geef het gen waar je naar op zoek bent mee (in dit geval COX1)
+# geef het gen waar je naar op zoek bent mee 
 gene_name = "COX1"
 # initieer 2 lege dataframes om de waarden straks in te steken pre-allocatie heeft geen nut aangezien er een maximum snelheid op het opvragen van IDs
 gene_ids = []
@@ -35,5 +35,7 @@ for id in search['ID'] :
 df = pd.DataFrame({"Species": species_with_COI, "ID": gene_ids})
 # verwijder de species die geen ID hebben opgeleverd (en vervang de vorige dataframe)
 df.dropna(subset=['ID'],inplace=True)
-# schrijf deze dataframe weg (vervang COX1 door het gewenste gen)
+#verander de float64 in integer
+df['ID']=df['ID'].astype(int)
+# schrijf deze dataframe weg
 df.to_csv('gene_IDS_COX1.csv', index =False)
