@@ -5,7 +5,7 @@ Entrez.email = "lars.vandenbossche@ugent.be"
 # functie om gene id op te halen
 def get_gene_id(id, gene_name):
     # zoek het gen in NCBI aan de hand van deze query
-    search_term = f"{gene_name}[Gene] AND {id}[Organism]"
+    search_term = f"{gene_name}[Gene] AND {id}[Organism] NOT discontinued[properties]"
     handle = Entrez.esearch(db="gene", term=search_term, retmax=1)
     record = Entrez.read(handle)
     handle.close()
