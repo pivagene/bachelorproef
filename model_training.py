@@ -16,11 +16,11 @@ import threading
 csv_file = 'AMP_species_list_COX1.csv'
 df = pd.read_csv(csv_file)
 
-with open('COX1_sequences.fasta', 'w') as fasta_file:
+with open('COX1_sequences.fasta', 'w') as fasta_file:   # alle fasta bestanden uit csv halen om db te maken
     for index, row in df.iterrows():
         fasta_file.write(f">{row['FASTA']}\n")
-
-# Step 2: Create the BLAST database
+# voor deze stap moet je blast+ installeren en in path zetten bij de omgevingsvariabelen (https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=Download)
+# Step 2: Create the BLAST database (hier verschillende groottes gebruiken kan ook via ncbi gdn worden expected time is 5 uur tho)
 subprocess.run(['makeblastdb', '-in', 'COX1_sequences.fasta', '-dbtype', 'nucl', '-out', 'COX1_blastdb'])
 
 # Function to extract features from a sequence
