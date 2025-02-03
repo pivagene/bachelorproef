@@ -1,60 +1,82 @@
-#packages inladen
 import pandas as pd
-from Bio import Entrez
-from Bio import SeqIO
 import numpy as np
-#altijd e-mail meegeven aan ncbi 
-Entrez.email = "uw.eigen@emailadres.be"
-#functie voor het opvragen van gen samenvatting definiëren (enkel in weekends en 's nachts)
+import matplotlib.pyplot as plt
+
+species = pd.read_csv('AMP_species_list.csv')
+
+from Bio import Entrez, SeqIO
+
+
+Entrez.email = "lars.prvte@gmail.com"
+Entrez.api_key="7d69d81fcd4a1d8a414cf6dce34c16fc2a09"  # Required for NCBI API
+
 def get_gene_summary(gene_id):
-    """
-    Fetch the nucleotide sequence of a gene using its Gene ID.
-    """
+    """Fetch the gene summary from NCBI using Entrez.esummary."""
     try:
- #efetch gebruiken om samenvatting van het gen op te vragen
         with Entrez.esummary(db="gene", id=gene_id) as handle:
             gene_summary = Entrez.read(handle)
         return gene_summary
-    except Exception as e:
-        return int(0)
-#altijd e-mail meegeven aan ncbi
-Entrez.email = "uw.eigen@emailadres.be"
-#inlezen van de gen ids uit vorige script
-gene_IDs = pd.read_csv('gene_IDS_hetgen.csv')
-#lege lijsten klaarzetten voor straks onze waarden in te steken
-sequentie = []
-ID = []
-range = []
-#definiëren voor welke IDs je wilt opzoeken 
-search = gene_IDs[["ID"]].loc[0:len(gene_IDs)-1]
-#for loop initiëren om alle data op te halen
-for i in search['ID']:
-    gene_id = i
-    summary = get_gene_summary(gene_id)
-    #info over het gen opvragen
-    chrom_info = summary['DocumentSummarySet']['DocumentSummary'][0]['GenomicInfo']
-    ID += [i]
-    if chrom_info:
-        chrom_accession = chrom_info[0]['ChrAccVer']
-        #start van gen sequentie opvragen
-        start = int(chrom_info[0]['ChrStart'])+1
-        #einde van gen sequentie opvragen
-        end = int(chrom_info[0]['ChrStop'])+1
-        #checken of de start en end plaats logisch zijn indien niet wisselen
-        if int(start)>int(end):
-            start1=start
-            end1=end
-            end=start1
-            start=end1
-        #lengte van het gen bepalen
-        range += [abs(int(end)-int(start))+1]
+    except Exception:
+        return None
 
-    #met efetch de nucleotiden sequentie ophalen
-    with Entrez.efetch(db="nucleotide", id=chrom_accession, rettype="fasta", strand=1, seq_start=start, seq_stop=end) as handle:
-        record = SeqIO.read(handle, "fasta")
-    sequentie += [record.seq]
-#data in een data frame zetten
-ID = np.array(ID)
-range = np.array(range)
-df = pd.DataFrame({"ID": ID, "length": range,"sequence":sequentie})
-# df.to_csv('gene_seq_hetgen.csv', index =False)
+def get_best_genomic_info(summary):
+    """Select the best genomic accession based on quality priority."""
+    chrom_info = summary['DocumentSummarySet']['DocumentSummary'][0]['GenomicInfo']
+    
+    if not chrom_info:
+        return None, None, None
+    
+    best_accession = None
+    best_quality = float('inf')
+    best_start, best_end = None, None
+
+    priority_order = ["NC_", "NG_", "NT_", "NW_"]  # Reference > Curated > Contig > Scaffold
+
+    for context in chrom_info:
+        accession = context['ChrAccVer']
+        start, end = int(context['ChrStart']) + 1, int(context['ChrStop']) + 1
+
+        for i, prefix in enumerate(priority_order):
+            if accession.startswith(prefix) and i < best_quality:
+                best_quality = i
+                best_accession = accession
+                best_start, best_end = start, end
+
+    return best_accession, best_start, best_end
+
+# Read gene IDs from CSV
+gene_IDs = pd.read_csv('gene_IDS_12SrRNA.csv')
+gene_IDs = gene_IDs[['ID']]  
+
+# Initialize lists
+ID = []
+range_values = []
+sequentie = []
+fasta_files = []
+for gene_id in gene_IDs['ID']:  # Ensure 'ID' column exists in the CSV
+    summary = get_gene_summary(gene_id)
+    
+    if summary:
+        chrom_accession, start, end = get_best_genomic_info(summary)
+        
+        if chrom_accession:
+            ID.append(gene_id)
+            if int(start)>int(end):
+                start1=start
+                end1=end
+                end=start1
+                start=end1
+            range_values.append(abs(end - start) + 1)
+
+            # Fetch the best sequence
+            with Entrez.efetch(db="nucleotide", id=chrom_accession, rettype="fasta", strand=1, seq_start=start, seq_stop=end) as handle:
+                record = SeqIO.read(handle, "fasta")
+            
+            sequentie.append(str(record.seq))  # Store sequence as string
+            fasta_files.append(record.format("fasta"))  # Store FASTA format
+            
+# Convert results into a DataFrame and save (optional)
+df_fasta = pd.DataFrame({'Gene_ID': ID, 'Range': range_values, 'FASTA': fasta_files}) # sequentie kan nog toegevoegd worden maar zit al in fasta_files
+df_seq = pd.DataFrame({'Gene_ID': ID, 'Range': range_values, 'sequentie': sequentie})
+df_fasta.to_csv('gene_FASTA_12SrRNA.csv', index=False)
+df_seq.to_csv('gene_seq_12SrRNA.csv', index=False)
