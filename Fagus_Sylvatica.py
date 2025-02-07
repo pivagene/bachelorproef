@@ -3,7 +3,7 @@ from Bio.Align.Applications import ClustalOmegaCommandline
 from Bio import AlignIO
 from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor
 from Bio import Phylo
-
+import matplotlib.pyplot as plt
 # Define the full path to the Clustal Omega executable
 clustalomega_exe = r"C:\Program Files\Clustal omega\clustal-omega-1.2.2-win64\clustal-omega-1.2.2-win64\clustalo.exe"  # Replace with the actual path to clustalo.exe
 
@@ -39,5 +39,29 @@ dm = calculator.get_distance(alignment)
 constructor = DistanceTreeConstructor()
 tree = constructor.nj(dm)
 
-# Visualize the phylogenetic tree
+
+
+for clade in tree.find_clades():
+    clade.name = None
+
+# Custom function to collapse clades with fewer than a certain number of terminal nodes
+def collapse_small_clades(tree, threshold):
+    for clade in tree.find_clades(order='postorder'):
+        if len(clade.get_terminals()) < threshold:
+            clade.collapse_all()
+
+# Collapse clades with fewer than 5 terminal nodes
+collapse_small_clades(tree, 0.1)
+
+# Adjust the figure size
+plt.figure(figsize=(20, 20))  # Adjust the size as needed
+
+# Visualize the tree
 Phylo.draw(tree)
+plt.show()
+
+
+from Bio import Phylo
+
+# Save the tree to a file in Newick format
+Phylo.write(tree, 'COX1_tree.newick', 'newick')
