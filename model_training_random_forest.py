@@ -39,7 +39,7 @@ def extract_features(sequence):
     return features
 
 # Function to extract k-mer counts from a sequence
-def get_kmers(sequence, k=5):
+def get_kmers(sequence, k=6):
     kmers = [sequence[i:i+k] for i in range(len(sequence) - k + 1)]
     return Counter(kmers)
 
