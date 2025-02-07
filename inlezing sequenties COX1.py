@@ -75,7 +75,7 @@ for gene_id in gene_IDs['ID']:  # Ensure 'ID' column exists in the CSV
             sequentie.append(str(record.seq))  # Store sequence as string
             fasta_files.append(record.format("fasta"))  # Store FASTA format
             
-# Convert results into a DataFrame and save (optional)
+# Convert results into a DataFrame and save 
 df_fasta = pd.DataFrame({'Gene_ID': ID, 'Range': range_values, 'FASTA': fasta_files}) # sequentie kan nog toegevoegd worden maar zit al in fasta_files
 df_seq = pd.DataFrame({'Gene_ID': ID, 'Range': range_values, 'sequentie': sequentie})
 df_fasta.to_csv('gene_FASTA_12SrRNA.csv', index=False)
