@@ -5,7 +5,7 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.Blast import NCBIXML
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.metrics import mean_squared_error, r2_score,median_absolute_error
@@ -87,7 +87,7 @@ merged_df.to_csv('AMP_species_list_12SrRNA.csv', index=False)
 
 # Merge dataframes with parameters dataframes
 df_AMP_collection = pd.read_csv('AMP_collection.csv')
-df_parameter = df_AMP_collection[df_AMP_collection['Data']=='tg']
+df_parameter = df_AMP_collection[df_AMP_collection['Data']=='am']
 df_parameter_selection = df_parameter[['Data','Observed','Predicted','Species']]
 df_parameter_selection = df_parameter_selection.rename(columns={"Species":"ID"})
 merged_df_par = pd.merge(df_parameter_selection,merged_df,on='ID',how='inner')
@@ -135,7 +135,7 @@ y = df['Observed']  # Replace with your target column
 X = X.fillna(0)
 y = y.fillna(0)
 # Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.50, random_state=42)
 
 # Train the Random Forest model
 model = GradientBoostingRegressor(n_estimators=100, learning_rate=0.05, max_depth=3,random_state=42)
