@@ -1,0 +1,13 @@
+True Label,Predicted Label,Correct,Gene_ID,ID
+std,abj,False,33409398,Poecilia_latipinna
+std,abj,False,26896814,Parapocryptes_serperaster
+std,abj,False,64988948,Boleophthalmus_pectinirostris
+std,abj,False,39411469,Gasterosteus_aculeatus
+stf,std,False,76337871,Aspidoscelis_sexlineatus
+std,abj,False,69235817,Odorrana_grahami
+std,abj,False,79504961,Aphanius_iberus
+stf,std,False,30213935,Eusphyra_blochii
+std,abj,False,40141994,Channa_punctata
+std,abj,False,83247676,Ambassis_agassizii
+abj,std,False,63650039,Protoreaster_nodosus
+ssj,abj,False,84889100,Albula_vulpes

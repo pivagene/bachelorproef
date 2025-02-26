@@ -1,21 +1,18 @@
 import pandas as pd
 import subprocess
 import os
-from Bio import SeqIO
-from Bio.Seq import Seq
 from Bio.Blast import NCBIXML
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.metrics import accuracy_score, classification_report
-from sklearn.metrics import mean_squared_error, r2_score,median_absolute_error
 from collections import Counter
 import io
-import joblib
 import threading
 import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split, cross_val_score, KFold
+from sklearn.metrics import mean_squared_error, r2_score, median_absolute_error
+import matplotlib.pyplot as plt
 import numpy as np
-
+import joblib
+from xgboost import XGBRegressor
+# mitofish database gebruiken
 # Step 1: Read the CSV file and write to a FASTA file and choose how to make the db
 csv_file = 'AMP_species_list_12SrRNA.csv'
 df = pd.read_csv(csv_file)
@@ -87,8 +84,10 @@ merged_df.to_csv('AMP_species_list_12SrRNA.csv', index=False)
 
 # Merge dataframes with parameters dataframes
 df_AMP_collection = pd.read_csv('AMP_collection.csv')
-df_parameter = df_AMP_collection[df_AMP_collection['Data']=='tg']
-df_parameter_selection = df_parameter[['Data','Observed','Predicted','Species']]
+df_parameter = df_AMP_collection[df_AMP_collection['Data']=='Wwim']
+df_parameter['Observed_log'] = np.log(df_AMP_collection['Observed'])
+df_parameter_selection = df_parameter[['Data','Observed_log','Predicted','Species','Unit']]
+# df_parameter_selection = df_parameter[['Data','Observed','Predicted','Species','Unit']]
 df_parameter_selection = df_parameter_selection.rename(columns={"Species":"ID"})
 merged_df_par = pd.merge(df_parameter_selection,merged_df,on='ID',how='inner')
 
@@ -123,22 +122,35 @@ kmer_df = pd.DataFrame(kmer_features).fillna(0)
 #features_df = pd.read_csv('blast_scores_12SrRNA_fulldb.csv')
 # Combine features with the merged DataFrame
 df = pd.concat([merged_df_par, features_df, kmer_df], axis=1)
-
+df = pd.get_dummies(df, columns=['Mod'])
 # Prepare the data
 # Assuming 'Characteristic' is the column you want to predict
 # Specify the columns you want to use for X
 feature_columns = [] + list(kmer_df.columns)  # Add more features as needed length and gc doen ni veel kmer wint zelf zonder blast score
 X = df[feature_columns]
-y = df['Observed']  # Replace with your target column
+y = df['Observed_log']  # Replace with your target column
 
 # Ensure there are no missing values
 X = X.fillna(0)
 y = y.fillna(0)
 # Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.50, random_state=42)
 
 # Train the Random Forest model
-model = GradientBoostingRegressor(n_estimators=100, learning_rate=0.05, max_depth=3,random_state=42)
+model = XGBRegressor(n_estimators=500, learning_rate=0.05, max_depth=2, random_state=42)
+# xgboost package gebruiken
+# Perform cross-validation
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+cv_scores = cross_val_score(model, X_train, y_train, cv=kf, scoring='neg_mean_squared_error')
+
+# Convert negative MSE to positive
+cv_scores = -cv_scores
+
+print(f'Cross-Validation Mean Squared Error: {cv_scores.mean()}')
+print(f'Cross-Validation Standard Deviation: {cv_scores.std()}')
+
+# Fit the model on the entire training set
+
 model.fit(X_train, y_train)
 
 # Evaluate the model
@@ -150,7 +162,7 @@ print(f'Mean Squared Error:{mse}')
 print(f'R^2 Score:{r2}')
 print(f'Median Absolute Error:{med}')
 
-x = np.linspace(0,500,1000)
+x = np.linspace(-15,15,1000)
 y = x
 plt.scatter(y_pred,y_test)
 plt.plot(x,y)
@@ -160,3 +172,5 @@ joblib.dump(model, 'random_forest_model_kmer_12SrRNA.pkl')
 
 # Save the blast scores and bit scores for future use
 features_df.to_csv('blast_scores_12SrRNA_1db.csv', index=False)
+
+value_counts = df_AMP_collection['Data'].value_counts()

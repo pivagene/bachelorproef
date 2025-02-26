@@ -4,14 +4,14 @@ import os
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.Blast import NCBIXML
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score, KFold
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, ConfusionMatrixDisplay, cohen_kappa_score
 from collections import Counter
 import io
 import joblib
 import threading
-
+import matplotlib.pyplot as plt
 # Step 1: Read the CSV file and write to a FASTA file and choose how to make the db
 csv_file = 'AMP_species_list_COX1.csv'
 df = pd.read_csv(csv_file)
@@ -39,7 +39,7 @@ def extract_features(sequence):
     return features
 
 # Function to extract k-mer counts from a sequence
-def get_kmers(sequence, k=6):
+def get_kmers(sequence, k=5):
     kmers = [sequence[i:i+k] for i in range(len(sequence) - k + 1)]
     return Counter(kmers)
 
@@ -127,6 +127,15 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random
 
 # Train the Random Forest model
 model = RandomForestClassifier(n_estimators=100, random_state=37)
+# Perform cross-validation
+kf = KFold(n_splits=5, shuffle=True, random_state=37)
+cv_scores = cross_val_score(model, X_train, y_train, cv=kf, scoring='accuracy')
+
+# Print cross-validation results
+print(f'Cross-Validation Accuracy: {cv_scores.mean()}')
+print(f'Cross-Validation Standard Deviation: {cv_scores.std()}')
+
+# Fit the model on the entire training set
 model.fit(X_train, y_train)
 
 # Evaluate the model
@@ -136,8 +145,38 @@ print(f'Accuracy: {accuracy}')
 print('Classification Report:')
 print(classification_report(y_test, y_pred))
 
+# Compute Cohen's Kappa score
+kappa_score = cohen_kappa_score(y_test, y_pred)
+print(f"Cohen's Kappa Score: {kappa_score}")
+
+# Compute the confusion matrix
+cm = confusion_matrix(y_test, y_pred)
+
+# Display the confusion matrix
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=model.classes_)
+disp.plot()
+# plt.savefig('confusion_matrix.png')
+plt.show()
 # Optionally, save the model for future use
 joblib.dump(model, 'random_forest_model_kmer_COX1.pkl')
 
 # Save the blast scores and bit scores for future use
 features_df.to_csv('blast_scores_COX1_1db.csv', index=False)
+
+
+misclassified = pd.DataFrame({
+    'True Label': y_test,
+    'Predicted Label': y_pred,
+    'Correct': y_test == y_pred
+}, index=X_test.index)
+
+# Merge misclassified instances with the original DataFrame to include additional variables
+misclassified = misclassified.merge(df[['Gene_ID', 'ID']], left_index=True, right_index=True)
+
+# Filter misclassified instances where Correct is False
+misclassified_false = misclassified[misclassified['Correct'] == False]
+
+misclassified_false.to_csv('misclassified_instances.csv', index=False)
+
+# cohens kappa sore voor class descrapency
+# terugwerken van wat interessant is om te vertellen tijdens de verdediging nut van genomische data onderzoeksvragen

@@ -4,6 +4,7 @@ import pandas as pd
 from collections import Counter
 # inlezen nodige data
 species = pd.read_csv('AMP_species_list.csv')
+species = pd.read_csv('AMP_species_list_12SrRNA.csv')
 # modellen uit data frame halen
 models = species[['Mod']]
 # het aantal modellen bekijken, tellen hoeveel keer ze voorkomen en sorteren voor estetische overwegingen
@@ -26,5 +27,7 @@ label = [f'{l}, {s:0.1f}%' for l, s in zip(labels,percentage )]
 fig, ax = plt.subplots()
 ax.pie(occurences,labels=labels,labeldistance=None)
 ax.legend(loc='center left', labels = label, bbox_to_anchor=(-0.3,0.5))
+# Titel toevoegen
+ax.set_title('modelverdeling 12SrRNA Dataset', loc='center')
 # eventueel opslaan van de figuur 
-# plt.savefig('piechart_modellen.png',bbox_inches='tight')
+plt.savefig('piechart_modellen_12SrRNA.png',bbox_inches='tight')
