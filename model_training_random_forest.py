@@ -39,7 +39,7 @@ def extract_features(sequence):
     return features
 
 # Function to extract k-mer counts from a sequence
-def get_kmers(sequence, k=5):
+def get_kmers(sequence, k=4):
     kmers = [sequence[i:i+k] for i in range(len(sequence) - k + 1)]
     return Counter(kmers)
 
@@ -149,14 +149,17 @@ print(classification_report(y_test, y_pred))
 kappa_score = cohen_kappa_score(y_test, y_pred)
 print(f"Cohen's Kappa Score: {kappa_score}")
 
-# Compute the confusion matrix
-cm = confusion_matrix(y_test, y_pred)
+# Get the unique labels in the test set
+unique_labels = y_test.unique()
 
-# Display the confusion matrix
-disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=model.classes_)
-disp.plot()
+# Compute the confusion matrix
+cm = confusion_matrix(y_test, y_pred, labels=unique_labels)
+
+# Display the confusion matrix with correct labels
+fig, ax = plt.subplots(figsize=(10, 10))  # Adjust the size as needed
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=unique_labels)
+disp.plot(ax=ax)
 # plt.savefig('confusion_matrix.png')
-plt.show()
 # Optionally, save the model for future use
 joblib.dump(model, 'random_forest_model_kmer_COX1.pkl')
 
