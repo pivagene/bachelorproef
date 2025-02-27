@@ -17,10 +17,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Step 1: Read the CSV file and write to a FASTA file and choose how to make the db
-csv_file = 'AMP_species_list_12SrRNA.csv'
+csv_file = 'AMP_species_list_COX1.csv'
 df = pd.read_csv(csv_file)
 # method 1: alle fasta bestanden uit csv halen om db te maken 
-with open('12SrRNA_db.fasta', 'w') as fasta_file:   # alle fasta bestanden uit csv halen om db te maken
+with open('COX1_db.fasta', 'w') as fasta_file:   # alle fasta bestanden uit csv halen om db te maken
     for index, row in df.iterrows():
         fasta_file.write(f">{row['FASTA']}\n")
 # method 2: 1 fasta bestand uit csv halen om db te maken
@@ -28,11 +28,11 @@ with open('12SrRNA_db.fasta', 'w') as fasta_file:   # alle fasta bestanden uit c
 fasta_value = df.at[604, 'FASTA']
 
 # Save the extracted value as a FASTA file
-with open('12SrRNA_db.fasta', 'w') as fasta_file:
+with open('COX1_db.fasta', 'w') as fasta_file:
     fasta_file.write(f'>sequence_604\n{fasta_value}\n')
 # voor deze stap moet je blast+ installeren en in path zetten bij de omgevingsvariabelen (https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=Download)
 # Step 2: Create the BLAST database (hier verschillende groottes gebruiken kan ook via ncbi gdn worden expected time is 5 uur tho)
-subprocess.run(['makeblastdb', '-in', '12SrRNA_db.fasta', '-dbtype', 'nucl', '-out', '12SrRNA_blastdb'])
+subprocess.run(['makeblastdb', '-in', 'COX1_db.fasta', '-dbtype', 'nucl', '-out', 'COX1_blastdb'])
 
 # Function to extract features from a sequence
 def extract_features(sequence):
@@ -43,12 +43,12 @@ def extract_features(sequence):
     return features
 
 # Function to extract k-mer counts from a sequence
-def get_kmers(sequence, k=5):
+def get_kmers(sequence, k=8):
     kmers = [sequence[i:i+k] for i in range(len(sequence) - k + 1)]
     return Counter(kmers)
 
 # Function to perform local BLAST alignment and extract alignment score and bit score
-def get_blast_scores(sequence, db='12SrRNA_blastdb'):
+def get_blast_scores(sequence, db='COX1_blastdb'):
     # Use a unique filename for each thread
     temp_fasta_filename = f'temp_query_{threading.get_ident()}.fasta'
     
@@ -76,14 +76,14 @@ def get_blast_scores(sequence, db='12SrRNA_blastdb'):
     return 0, 0
 
 # Load the CSV files
-sequences_df = pd.read_csv('gene_seq_12SrRNA_final.csv')  # Contains sequence and ID
-animals_df = pd.read_csv('gene_IDS_12SrRNA_final.csv')  # Contains ID and animal information
+sequences_df = pd.read_csv('gene_seq_COX1_final.csv')  # Contains sequence and ID
+animals_df = pd.read_csv('gene_IDS_COX1_final.csv')  # Contains ID and animal information
 characteristics_df = pd.read_csv('AMP_species_list.csv')  # Contains animal and characteristic
 
 # Merge the DataFrames
 merged_df = pd.merge(sequences_df, animals_df, on='Gene_ID', how='inner')  # Merge on 'ID'
 merged_df = pd.merge(merged_df, characteristics_df, on='ID', how='inner')  # Merge on 'Animal'
-merged_df.to_csv('AMP_species_list_12SrRNA.csv', index=False)
+merged_df.to_csv('AMP_species_list_COX1.csv', index=False)
 
 # Merge dataframes with parameters dataframes
 df_AMP_collection = pd.read_csv('AMP_collection.csv')
@@ -120,7 +120,7 @@ kmer_df = pd.DataFrame(kmer_features).fillna(0)
 # Add BLAST scores and bit scores to the features DataFrame
 #features_df['blast_score'] = blast_scores
 #features_df['bit_score'] = bit_scores
-#features_df = pd.read_csv('blast_scores_12SrRNA_fulldb.csv')
+#features_df = pd.read_csv('blast_scores_COX1_1db.csv')
 # Combine features with the merged DataFrame
 df = pd.concat([merged_df_par, features_df, kmer_df], axis=1)
 
@@ -135,7 +135,7 @@ y = df['Observed']  # Replace with your target column
 X = X.fillna(0)
 y = y.fillna(0)
 # Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=30)
 
 # Train the Random Forest model
 model = GradientBoostingRegressor(n_estimators=100, learning_rate=0.05, max_depth=3,random_state=42)
@@ -156,7 +156,7 @@ plt.scatter(y_pred,y_test)
 plt.plot(x,y)
 
 # Optionally, save the model for future use
-joblib.dump(model, 'random_forest_model_kmer_12SrRNA.pkl')
+joblib.dump(model, 'random_forest_model_kmer_COX1.pkl')
 
 # Save the blast scores and bit scores for future use
-features_df.to_csv('blast_scores_12SrRNA_1db.csv', index=False)
+features_df.to_csv('blast_scores_COX1_1db.csv', index=False)
