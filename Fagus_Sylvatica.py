@@ -6,6 +6,7 @@ from Bio import Phylo
 import matplotlib.pyplot as plt
 import subprocess
 import os
+import pandas as pd
 # packages voor alignment raxml en fasttree
 # Define the full path to the Clustal Omega executable
 clustalomega_exe = r"C:\Program Files\Clustal omega\clustal-omega-1.2.2-win64\clustal-omega-1.2.2-win64\clustalo.exe"  # Replace with the actual path to clustalo.exe
@@ -108,3 +109,45 @@ from Bio import Phylo
 
 # Save the tree to a file in Newick format
 Phylo.write(tree, 'COX1_tree.newick', 'newick')
+
+
+#creating the annotation file for the tree
+# Load your DataFrame with IDs and qualitative metrics
+df = pd.read_csv('AMP_species_list_COX1.csv')  # Replace with the actual path to your CSV file
+
+# Define a function to map qualitative metrics to colors
+def metric_to_color(metric):
+    color_mapping = {
+        'std': '#FF0000',  # Red
+        'abj': '#00FF00',  # Green
+        'stx': '#0000FF',  # Blue
+        'stf': '#FFFF00',  # Yellow
+        'abp': '#FF00FF',  # Magenta
+        'hex': '#00FFFF',  # Cyan
+        'ssj': '#800000',  # Maroon
+        'hep': '#808000',  # Olive
+        'hax': '#008000',  # Dark Green
+        'asj': '#800080',  # Purple
+        'sbp': '#000080'   # Navy
+    }
+    return color_mapping.get(metric, '#000000')
+
+# Create the annotation file
+with open('COX1_annotations.txt', 'w') as f:
+    f.write('DATASET_COLORSTRIP\n')
+    f.write('SEPARATOR TAB\n')
+    f.write('DATASET_LABEL\tmodel Colors\n')
+    f.write('COLOR\t#ff0000\n')
+    f.write('LEGEND_TITLE\tmodel\n')
+    f.write('LEGEND_SHAPES\t1\t1\t1\t1\t1\t1\t1\t1\t1\t1\t1\n')
+    f.write('LEGEND_COLORS\t#FF0000\t#00FF00\t#0000FF\t#FFFF00\t#FF00FF\t#00FFFF\t#800000\t#808000\t#008000\t#800080\t#000080\n')
+    f.write('LEGEND_LABELS\tstd\tabj\tstx\tstf\tabp\thex\tssj\thep\thax\tasj\tsbp\n')
+    f.write('BORDER_WIDTH\t1\n')
+    f.write('BORDER_COLOR\t#000000\n')
+    f.write('DATA\n')
+    for index, row in df.iterrows():
+        color = metric_to_color(row['Mod'])
+        id_with_quotes = f"'{row['ID'].replace('_', ' ')}'"  # Add single quotes and replace underscores with spaces
+        f.write(f"{id_with_quotes}\t{color}\n")
+
+# Aspidoscelis_sexlineatus stf -> std maar std ook goeie 
