@@ -81,10 +81,10 @@ characteristics_df = pd.read_csv('AMP_species_list.csv')  # Contains animal and 
 merged_df = pd.merge(sequences_df, animals_df, on='Gene_ID', how='inner')  # Merge on 'ID'
 merged_df = pd.merge(merged_df, characteristics_df, on='ID', how='inner')  # Merge on 'Animal'
 merged_df.to_csv('AMP_species_list_12SrRNA.csv', index=False)
-
+merged_df = pd.read_csv('mitofish_sequences.csv')
 # Merge dataframes with parameters dataframes
 df_AMP_collection = pd.read_csv('AMP_collection.csv')
-df_parameter = df_AMP_collection[df_AMP_collection['Data']=='Wwim']
+df_parameter = df_AMP_collection[df_AMP_collection['Data']=='Ri']
 df_parameter['Observed_log'] = np.log(df_AMP_collection['Observed'])
 df_parameter_selection = df_parameter[['Data','Observed_log','Predicted','Species','Unit']]
 # df_parameter_selection = df_parameter[['Data','Observed','Predicted','Species','Unit']]
@@ -141,7 +141,7 @@ model = XGBRegressor(n_estimators=500, learning_rate=0.05, max_depth=2, random_s
 # xgboost package gebruiken
 # Perform cross-validation
 kf = KFold(n_splits=5, shuffle=True, random_state=42)
-cv_scores = cross_val_score(model, X_train, y_train, cv=kf, scoring='neg_mean_squared_error')
+cv_scores = cross_val_score(model, X, y, cv=kf, scoring='neg_mean_squared_error')
 
 # Convert negative MSE to positive
 cv_scores = -cv_scores
@@ -173,4 +173,5 @@ joblib.dump(model, 'random_forest_model_kmer_12SrRNA.pkl')
 # Save the blast scores and bit scores for future use
 features_df.to_csv('blast_scores_12SrRNA_1db.csv', index=False)
 
-value_counts = df_AMP_collection['Data'].value_counts()
+value_counts = merged_df_par['Data'].value_counts()
+print(value_counts)
