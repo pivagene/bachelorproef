@@ -1,11 +1,11 @@
 import pandas as pd
 import subprocess
 import os
+import numpy as np
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.Blast import NCBIXML
-from sklearn.model_selection import train_test_split
-from sklearn.svm import SVC
+from sklearn.model_selection import train_test_split, cross_val_score, KFold
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
 from collections import Counter
@@ -13,6 +13,7 @@ import io
 import joblib
 import threading
 from Bio import pairwise2
+from xgboost import XGBRegressor
 script_dir = os.path.dirname(__file__)
 
 # Step 1: Read the CSV file and write to a FASTA file and choose how to make the db
