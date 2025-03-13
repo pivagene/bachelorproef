@@ -39,7 +39,7 @@ def extract_features(sequence):
     return features
 
 # Function to extract k-mer counts from a sequence
-def get_kmers(sequence, k=4):
+def get_kmers(sequence, k=5):
     kmers = [sequence[i:i+k] for i in range(len(sequence) - k + 1)]
     return Counter(kmers)
 
@@ -179,7 +179,7 @@ misclassified = misclassified.merge(df[['Gene_ID', 'ID']], left_index=True, righ
 # Filter misclassified instances where Correct is False
 misclassified_false = misclassified[misclassified['Correct'] == False]
 
-misclassified_false.to_csv('misclassified_instances.csv', index=False)
+misclassified_false.to_csv(os.path.join(script_dir,'../csv_files/misclassified_instances.csv'), index=False)
 
 # cohens kappa sore voor class descrapency
 # terugwerken van wat interessant is om te vertellen tijdens de verdediging nut van genomische data onderzoeksvragen
