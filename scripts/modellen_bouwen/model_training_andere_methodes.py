@@ -183,25 +183,5 @@ joblib.dump(model, 'SVM_model_kmer_12SrRNA.pkl')
 # Save the blast scores, bit scores, and global alignment scores for future use
 features_df.to_csv('blast_scores_12SrRNA_1db.csv', index=False)
 
-<<<<<<< HEAD:model_training_random_forest.py
-
-misclassified = pd.DataFrame({
-    'True Label': y_test,
-    'Predicted Label': y_pred,
-    'Correct': y_test == y_pred
-}, index=X_test.index)
-
-# Merge misclassified instances with the original DataFrame to include additional variables
-misclassified = misclassified.merge(df[['Gene_ID', 'ID']], left_index=True, right_index=True)
-
-# Filter misclassified instances where Correct is False
-misclassified_false = misclassified[misclassified['Correct'] == False]
-
-misclassified_false.to_csv(os.path.join(script_dir,'../csv_files/misclassified_instances.csv'), index=False)
-
-# cohens kappa sore voor class descrapency
-# terugwerken van wat interessant is om te vertellen tijdens de verdediging nut van genomische data onderzoeksvragen
-=======
 value_counts = merged_df_par['Data'].value_counts()
 print(value_counts)
->>>>>>> 1844c51a6308b2e5e4c2c39e8697205ed4247849:scripts/modellen_bouwen/model_training_andere_methodes.py
