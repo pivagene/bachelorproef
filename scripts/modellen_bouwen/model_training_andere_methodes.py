@@ -1,11 +1,11 @@
 import pandas as pd
 import subprocess
 import os
+import numpy as np
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.Blast import NCBIXML
-from sklearn.model_selection import train_test_split
-from sklearn.svm import SVC
+from sklearn.model_selection import train_test_split, cross_val_score, KFold
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
 from collections import Counter
@@ -13,6 +13,7 @@ import io
 import joblib
 import threading
 from Bio import pairwise2
+from xgboost import XGBRegressor
 script_dir = os.path.dirname(__file__)
 
 # Step 1: Read the CSV file and write to a FASTA file and choose how to make the db
@@ -92,6 +93,16 @@ characteristics_df = pd.read_csv('AMP_species_list.csv')  # Contains animal and 
 merged_df = pd.merge(sequences_df, animals_df, on='Gene_ID', how='inner')  # Merge on 'ID'
 merged_df = pd.merge(merged_df, characteristics_df, on='ID', how='inner')  # Merge on 'Animal'
 merged_df.to_csv('AMP_species_list_12SrRNA.csv', index=False)
+merged_df = pd.read_csv('mitofish_sequences.csv')
+# Merge dataframes with parameters dataframes
+df_AMP_collection = pd.read_csv('AMP_collection.csv')
+df_parameter = df_AMP_collection[df_AMP_collection['Data']=='Ri']
+df_parameter['Observed_log'] = np.log(df_AMP_collection['Observed'])
+df_parameter_selection = df_parameter[['Data','Observed_log','Predicted','Species','Unit']]
+# df_parameter_selection = df_parameter[['Data','Observed','Predicted','Species','Unit']]
+df_parameter_selection = df_parameter_selection.rename(columns={"Species":"ID"})
+merged_df_par = pd.merge(df_parameter_selection,merged_df,on='ID',how='inner')
+
 
 # Extract features from the FASTA sequences
 features = []
@@ -138,8 +149,22 @@ y = df['Mod']  # Replace with your target column
 X = X.fillna(0)
 
 # Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=37)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.50, random_state=42)
 
+# Train the Random Forest model
+model = XGBRegressor(n_estimators=500, learning_rate=0.05, max_depth=2, random_state=42)
+# xgboost package gebruiken
+# Perform cross-validation
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+cv_scores = cross_val_score(model, X, y, cv=kf, scoring='neg_mean_squared_error')
+
+# Convert negative MSE to positive
+cv_scores = -cv_scores
+
+print(f'Cross-Validation Mean Squared Error: {cv_scores.mean()}')
+print(f'Cross-Validation Standard Deviation: {cv_scores.std()}')
+
+# Fit the model on the entire training set
 # Train the SVM model
 # model = SVC(kernel='linear', random_state=37) # svc tot nu toe het beste voor 12SrRNA
 model = RandomForestClassifier(n_estimators=100, random_state=37)
@@ -158,3 +183,5 @@ joblib.dump(model, 'SVM_model_kmer_12SrRNA.pkl')
 # Save the blast scores, bit scores, and global alignment scores for future use
 features_df.to_csv('blast_scores_12SrRNA_1db.csv', index=False)
 
+value_counts = merged_df_par['Data'].value_counts()
+print(value_counts)
