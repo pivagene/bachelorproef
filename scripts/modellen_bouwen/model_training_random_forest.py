@@ -4,7 +4,7 @@ import os
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.Blast import NCBIXML
-from sklearn.model_selection import train_test_split, cross_val_score, KFold
+from sklearn.model_selection import train_test_split, cross_val_score, KFold, RepeatedKFold
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, ConfusionMatrixDisplay, cohen_kappa_score
 from collections import Counter
@@ -51,10 +51,20 @@ kmer_df = pd.DataFrame(kmer_features).fillna(0)
 # Combine features with the merged DataFrame
 df = pd.concat([merged_df, features_df, kmer_df], axis=1)
 
+
+# Function to check if a k-mer contains only A, C, T, or G
+def is_valid_kmer(kmer):
+    valid_bases = {'A', 'C', 'T', 'G'}
+    return all(base in valid_bases for base in kmer)
+
+# Filter out columns with invalid k-mers
+valid_kmer_columns = [column for column in kmer_df.columns if is_valid_kmer(column)]
+filtered_kmer_df = kmer_df[valid_kmer_columns]
+
 # Prepare the data
 # Assuming 'Characteristic' is the column you want to predict
 # Specify the columns you want to use for X
-feature_columns = [] + list(kmer_df.columns)  # Add more features as needed length and gc doen ni veel kmer wint zelf zonder blast score
+feature_columns = [] + list(filtered_kmer_df.columns)  # Add more features as needed length and gc doen ni veel kmer wint zelf zonder blast score
 X = df[feature_columns]
 y = df['Mod']  # Replace with your target column
 
@@ -67,12 +77,12 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random
 # Train the Random Forest model
 model = RandomForestClassifier(n_estimators=100, random_state=37)
 # Perform cross-validation
-kf = KFold(n_splits=5, shuffle=True, random_state=37)
-cv_scores = cross_val_score(model, X_train, y_train, cv=kf, scoring='accuracy')
+rkf = RepeatedKFold(n_splits=7, n_repeats=3, random_state=37)
+cv_scores = cross_val_score(model, X, y, cv=rkf, scoring='accuracy')
 
 # Print cross-validation results
-print(f'Cross-Validation Accuracy: {cv_scores.mean()}')
-print(f'Cross-Validation Standard Deviation: {cv_scores.std()}')
+print(f'Repeated K-Fold Cross-Validation Accuracy: {cv_scores.mean()}')
+print(f'Repeated K-Fold Cross-Validation Standard Deviation: {cv_scores.std()}')
 
 # Fit the model on the entire training set
 model.fit(X_train, y_train)
