@@ -33,8 +33,8 @@ merged_df.to_csv(os.path.join(script_dir, '../../csv_files/AMP_species_list_COX1
 
 # Merge dataframes with parameters dataframes
 df_AMP_collection = pd.read_csv(os.path.join(script_dir, '../../csv_files/AMP_collection.csv'))
-df_parameter = df_AMP_collection[df_AMP_collection['Data'] == 'Wwim']
-df_parameter['Observed_log'] = np.log(df_AMP_collection['Observed'])
+df_parameter = df_AMP_collection[df_AMP_collection['Data'] == 'tR'].copy()
+df_parameter.loc[:,'Observed_log'] = np.log(df_parameter['Observed'])
 df_parameter_selection = df_parameter[['Data', 'Observed_log', 'Predicted', 'Species', 'Unit']]
 # df_parameter_selection = df_parameter[['Data','Observed','Predicted','Species','Unit']]
 df_parameter_selection = df_parameter_selection.rename(columns={"Species": "ID"})
@@ -85,13 +85,17 @@ model = XGBRegressor(n_estimators=500, learning_rate=0.05, max_depth=2, random_s
 # xgboost package gebruiken
 # Perform cross-validation
 kf = KFold(n_splits=5, shuffle=True, random_state=42)
-cv_scores = cross_val_score(model, X_train, y_train, cv=kf, scoring='neg_mean_squared_error')
-
+cv_mse_scores = cross_val_score(model, X, y, cv=kf, scoring='neg_mean_squared_error')
+cv_r2_scores = cross_val_score(model, X, y, cv=kf, scoring='r2')
 # Convert negative MSE to positive
-cv_scores = -cv_scores
+cv_mse_scores = -cv_mse_scores
 
-print(f'Cross-Validation Mean Squared Error: {cv_scores.mean()}')
-print(f'Cross-Validation Standard Deviation: {cv_scores.std()}')
+print(f'Cross-Validation Mean Squared Error: {cv_mse_scores.mean()}')
+print(f'Cross-Validation Standard Deviation: {cv_mse_scores.std()}')
+
+print(f'Cross-Validation R^2 Score: {cv_r2_scores.mean()}')
+print(f'Cross-Validation Standard Deviation (R^2): {cv_r2_scores.std()}')
+
 
 # Fit the model on the entire training set
 model.fit(X_train, y_train)
