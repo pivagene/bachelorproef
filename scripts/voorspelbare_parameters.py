@@ -14,12 +14,14 @@ script_dir = os.path.dirname(__file__)
 
 # Load the CSV file
 df_AMP_collection = pd.read_csv(os.path.join(script_dir, '../csv_files/AMP_collection.csv'))
+df_AMP_collection['Description'] = df_AMP_collection['Description'].str.lower()
+df_AMP_collection['Description'] = df_AMP_collection['Description'].str.replace('reprod', 'reproduction', regex=False)
 
 # Get the unique values in the first column and count their occurrences
-parameter_counts = df_AMP_collection['Data'].value_counts()
+parameter_counts = df_AMP_collection['Description'].value_counts()
 
 # Filter out parameters with less than 50 occurrences
-filtered_parameters = parameter_counts[parameter_counts >= 50].index
+filtered_parameters = parameter_counts[parameter_counts >= 1].index
 
 # Filter the DataFrame to include only the filtered parameters
 filtered_df = df_AMP_collection[df_AMP_collection['Data'].isin(filtered_parameters)]
@@ -93,6 +95,7 @@ def process_parameter(i):
     X = df[feature_columns]
     y = df['Observed_log'] 
 
+    datacount = len(y)
     # Ensure there are no missing values
     X = X.fillna(0)
     y = y.fillna(0)
@@ -108,7 +111,8 @@ def process_parameter(i):
     return {
         'Parameter': parameter_name,
         'MSE': cv_mse_scores.mean(),
-        'R^2': cv_r2_scores.mean()
+        'R^2': cv_r2_scores.mean(),
+        'amount of data': datacount
     }
 
 # Process each parameter in parallel
@@ -141,12 +145,30 @@ filtered_results_df = results_df[results_df['Count'] >= 300]
 # Sort the DataFrame by R^2 score
 sorted_results_df = filtered_results_df.sort_values(by='R^2')
 
-# Plot the R^2 scores as a bar graph
-plt.figure(figsize=(10, 6))
-plt.bar(sorted_results_df['Parameter'], sorted_results_df['R^2'], color='skyblue')
-plt.xlabel('Parameter')
-plt.ylabel('R^2 Score')
-plt.title('R^2 Scores for Each Parameter')
-plt.xticks(rotation=90)
-plt.tight_layout()
+
+# Plot the R^2 scores and datacount as a dual-axis bar graph
+fig, ax1 = plt.subplots(figsize=(12, 6))
+
+# Plot the R^2 scores on the primary y-axis
+ax1.bar(results_df['Parameter'], results_df['R^2'], color='skyblue', label='R^2 Score', alpha=0.7)
+ax1.set_xlabel('Parameter')
+ax1.set_ylabel('R^2 Score', color='blue')
+ax1.tick_params(axis='y', labelcolor='blue')
+ax1.set_xticks(range(len(results_df['Parameter'])))
+ax1.set_xticklabels(results_df['Parameter'], rotation=90)
+
+# Create a secondary y-axis for datacount
+ax2 = ax1.twinx()
+ax2.bar(results_df['Parameter'], results_df['amount of data'], color='orange', label='amount of data', alpha=0.5)
+ax2.set_ylabel('amount of data', color='orange')
+ax2.tick_params(axis='y', labelcolor='orange')
+
+# Add a title and layout adjustments
+fig.suptitle('R^2 Scores and amount of data for Each Parameter')
+fig.tight_layout()
+
+# Add a legend
+fig.legend(loc='upper right', bbox_to_anchor=(0.9, 0.9))
+
+# Show the plot
 plt.show()
