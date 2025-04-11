@@ -1,10 +1,16 @@
 import pandas as pd
+import subprocess
 import os
-from sklearn.model_selection import train_test_split, cross_val_score, RepeatedKFold
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.Blast import NCBIXML
+from sklearn.model_selection import train_test_split, cross_val_score, KFold, RepeatedKFold
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, ConfusionMatrixDisplay, cohen_kappa_score
 from collections import Counter
+import io
 import joblib
+import threading
 import matplotlib.pyplot as plt
 script_dir = os.path.dirname(__file__)
 
@@ -15,17 +21,17 @@ def get_kmers(sequence, k=5):
 
 
 # Load the CSV files
-sequences_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/gene_seq_COX1_final.csv'))  # Contains sequence and ID
+sequences_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/extracted_folmer_regions.csv'))  # Contains sequence and ID
 animals_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/gene_IDS_COX1_final.csv'))  # Contains ID and animal information
 characteristics_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/AMP_species_list.csv'))  # Contains animal and characteristic
 
 # Merge the DataFrames
 merged_df = pd.merge(sequences_df, animals_df, on='Gene_ID', how='inner')  # Merge on 'ID'
 merged_df = pd.merge(merged_df, characteristics_df, on='ID', how='inner')  # Merge on 'Animal'
-merged_df = merged_df[merged_df['Phylum'] == 'Chordata']
 # merged_df.to_csv(os.path.join(script_dir, '../../csv_files/AMP_species_list_COX1.csv'), index=False)
-# merged_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/mitofish_sequences.csv'))
+
 # Extract features from the FASTA sequences
+features = []
 kmer_features = []
 #blast_scores = []
 #bit_scores = []
@@ -36,16 +42,15 @@ for seq in merged_df['sequentie']:
     kmer_feature = get_kmers(sequence)
     kmer_features.append(kmer_feature)
 
+# Convert features to a DataFrame
+features_df = pd.DataFrame(features)
 # features_df = pd.read_csv("blast_scores.csv") als je de blast al hebt gedaan
 # Convert k-mer features to a DataFrame
 kmer_df = pd.DataFrame(kmer_features).fillna(0)
 
-# Reset indices before concatenation
-merged_df = merged_df.reset_index(drop=True)
-kmer_df = kmer_df.reset_index(drop=True)
-
 # Combine features with the merged DataFrame
-df = pd.concat([merged_df, kmer_df], axis=1)
+df = pd.concat([merged_df, features_df, kmer_df], axis=1)
+
 
 # Function to check if a k-mer contains only A, C, T, or G
 def is_valid_kmer(kmer):
@@ -60,9 +65,11 @@ filtered_kmer_df = kmer_df[valid_kmer_columns]
 # Assuming 'Characteristic' is the column you want to predict
 # Specify the columns you want to use for X
 feature_columns = [] + list(filtered_kmer_df.columns)  # Add more features as needed length and gc doen ni veel kmer wint zelf zonder blast score
-df = df.dropna(subset=['Mod'])
 X = df[feature_columns]
 y = df['Mod']  # Replace with your target column
+
+# Ensure there are no missing values
+X = X.fillna(0)
 
 # Split the data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=37)
@@ -106,7 +113,7 @@ disp.plot(ax=ax)
 joblib.dump(model, os.path.join('../../other_files/random_forest_model_kmer_COX1.pkl'))
 
 # Save the blast scores and bit scores for future use
-# features_df.to_csv(os.path.join(script_dir, '../../other_files/blast_scores_COX1_1db'), index=False)
+features_df.to_csv(os.path.join(script_dir, '../../other_files/blast_scores_COX1_1db'), index=False)
 
 
 misclassified = pd.DataFrame({

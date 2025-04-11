@@ -5,14 +5,71 @@ from Bio import Phylo
 import matplotlib.pyplot as plt
 import pandas as pd
 import subprocess
-
+import os
+script_dir = os.path.dirname(__file__)
 # Define the full path to the Clustal Omega executable
 clustalomega_exe = r"C:\Program Files\Clustal omega\clustal-omega-1.2.2-win64\clustal-omega-1.2.2-win64\clustalo.exe"  # Replace with the actual path to clustalo.exe
 
+
+# Combine all FASTA sequences from the CSV file into one big FASTA file
+# gene_fasta_csv = os.path.join(script_dir, '../../csv_files/gene_FASTA_mitofish_final.csv')
+# output_fasta_file = "mitofish_sequences.fasta"
+
+# with open(output_fasta_file, 'w') as output_fasta:
+    # gene_fasta_df = pd.read_csv(gene_fasta_csv)
+    # for fasta_sequence in gene_fasta_df['FASTA']:
+        # output_fasta.write(f"{fasta_sequence}\n")
+
+
+# Combine all single FASTA files in the mitofish_data folder into one big FASTA file
+mitofish_data_dir = os.path.join(script_dir, '..\..\mitofish_data')  # Adjust path if needed
+combined_fasta_file = "mitofish_sequences.fasta"
+
+# Debugging: Check if the directory exists
+if not os.path.exists(mitofish_data_dir):
+    raise ValueError(f"The directory {mitofish_data_dir} does not exist. Please check the path.")
+
+# Debugging: Log all files in the directory
+all_files = os.listdir(mitofish_data_dir)
+print(f"All files in {mitofish_data_dir}: {all_files}")
+
+# Filter files containing '.fasta' or '.fa' in their names
+fasta_files = [f for f in all_files if '.fasta' in f or '.fa' in f]
+print(f"Found {len(fasta_files)} FASTA files in {mitofish_data_dir}.")
+if not fasta_files:
+    raise ValueError(f"No FASTA files found in the directory {mitofish_data_dir}. Please check the input data.")
+
+# Combine the contents of all FASTA files
+with open(combined_fasta_file, 'w') as combined_fasta:
+    for filename in fasta_files:
+        file_path = os.path.join(mitofish_data_dir, filename)
+        try:
+            # Debugging: Log the file being processed
+            print(f"Processing file: {filename}")
+            
+            # Parse the FASTA file to ensure it contains valid sequences
+            records = list(SeqIO.parse(file_path, "fasta"))
+            if not records:
+                print(f"Warning: The file {filename} contains no valid sequences and will be skipped.")
+                continue
+            
+            # Write each sequence individually to the combined file
+            for record in records:
+                SeqIO.write(record, combined_fasta, "fasta")
+        except Exception as e:
+            print(f"Error processing file {filename}: {e}")
+            continue
+
+# Debugging: Log the number of sequences in the combined FASTA file
+combined_sequences = list(SeqIO.parse(combined_fasta_file, "fasta"))
+print(f"Number of sequences in {combined_fasta_file}: {len(combined_sequences)}")
+if len(combined_sequences) == 0:
+    raise ValueError(f"The file {combined_fasta_file} is empty after combining. Please check the input FASTA files.")
+
 # Ensure unique sequence IDs
-input_fasta = "COX1_sequences.fasta"
-unique_fasta = "unique_COX1_sequences.fasta"
-names_df = pd.read_csv("AMP_species_list_COX1.csv")
+input_fasta = "mitofish_sequences.fasta"
+unique_fasta = "unique_mitofish_sequences.fasta"
+names_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/AMP_species_list_mitofish.csv'))
 
 # Create a new column for unique IDs
 names_df['unique_id'] = [f"seq{i+1}" for i in range(len(names_df))]
@@ -42,8 +99,9 @@ with open(unique_fasta, 'w') as output_handle:
         record.name = unique_id  # Ensure the name is a string without quotes
         record.description = ""
         SeqIO.write(record, output_handle, "fasta")
+
 # Align sequences using Clustal Omega
-clustalomega_cline = ClustalOmegaCommandline(cmd=clustalomega_exe, infile=unique_fasta, outfile="COX1_aligned_sequences.fasta", verbose=True, auto=True, force=True)
+clustalomega_cline = ClustalOmegaCommandline(cmd=clustalomega_exe, infile=unique_fasta, outfile="mitofish_aligned_sequences.fasta", verbose=True, auto=True, force=True)
 stdout, stderr = clustalomega_cline()
 
 # Print the standard output and error (if any)
@@ -51,10 +109,10 @@ print(stdout)
 print(stderr)
 
 # Read the aligned sequences
-alignment = AlignIO.read("COX1_aligned_sequences.fasta", "fasta")
+alignment = AlignIO.read("mitofish_aligned_sequences.fasta", "fasta")
 
 # Save the aligned sequences to a file in PHYLIP format for FastTree
-phylip_file = "COX1_aligned_sequences.phy"
+phylip_file = "mitofish_aligned_sequences.phy"
 AlignIO.write(alignment, phylip_file, "phylip")
 
 # Read the aligned sequences
@@ -62,7 +120,7 @@ alignment = AlignIO.read(phylip_file, "phylip")
 
 # Run FastTree to construct the phylogenetic tree
 fasttree_exe = r"C:\Program Files\fastTree\FastTree.exe"  # Replace with the actual path to FastTree.exe
-tree_file = "COX1_tree.newick"
+tree_file = "mitofish_tree.newick"
 subprocess.run([fasttree_exe, "-nt", phylip_file], stdout=open(tree_file, 'w'))
 
 # Read the tree
@@ -81,11 +139,11 @@ Phylo.draw(tree)
 plt.show()
 
 # Save the tree to a file in Newick format
-Phylo.write(tree, 'COX1_tree_with_names_C.newick', 'newick')
+Phylo.write(tree, 'mitofish_tree_with_names.newick', 'newick')
 
 #creating the annotation file for the tree
 # Load your DataFrame with IDs and qualitative metrics
-df = pd.read_csv('AMP_species_list_COX1.csv')  # Replace with the actual path to your CSV file
+df = pd.read_csv(os.path.join(script_dir, '../../csv_files/AMP_species_list_mitofish.csv'))
 
 # Define a function to map qualitative metrics to colors
 def metric_to_color(metric):
@@ -105,7 +163,7 @@ def metric_to_color(metric):
     return color_mapping.get(metric, '#000000')
 
 # Create the annotation file
-with open('COX1_annotations.txt', 'w') as f:
+with open('mitofish_annotations.txt', 'w') as f:
     f.write('DATASET_COLORSTRIP\n')
     f.write('SEPARATOR TAB\n')
     f.write('DATASET_LABEL\tmodel Colors\n')
@@ -122,4 +180,4 @@ with open('COX1_annotations.txt', 'w') as f:
         id_with_quotes = f"'{row['ID'].replace('_', ' ')}'"  # Add single quotes and replace underscores with spaces
         f.write(f"{id_with_quotes}\t{color}\n")
 
-# Aspidoscelis_sexlineatus stf -> std maar std ook goeie 
+# Aspidoscelis_sexlineatus stf -> std maar std ook goeie
