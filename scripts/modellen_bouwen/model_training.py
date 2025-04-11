@@ -14,7 +14,7 @@ import threading
 script_dir = os.path.dirname(__file__)
 
 # Function to extract k-mer counts from a sequence
-def get_kmers(sequence, k=3):
+def get_kmers(sequence, k=5):
     kmers = [sequence[i:i+k] for i in range(len(sequence) - k + 1)]
     return Counter(kmers)
 
