@@ -10,7 +10,16 @@ from joblib import Parallel, delayed
 
 # Load the cleaned CSV file
 script_dir = os.path.dirname(__file__)
-df_merged = pd.read_csv(os.path.join(script_dir, '../../csv_files/merged_data_cleaned.csv'))
+#df_merged = pd.read_csv(os.path.join(script_dir, '../../csv_files/merged_data_cleaned.csv'))
+cleaned_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/AMP_collection_cleaned.csv'))
+cox1_df = pd.read_csv('c:\\Users\\devos\\OneDrive - UGent\\3de bach\\bachelorproef\\Bachelorproef_AMP\\python\\bachelorproef github\\csv_files\\AMP_species_list_COX1.csv')
+collection_df = pd.read_csv('c:\\Users\\devos\\OneDrive - UGent\\3de bach\\bachelorproef\\Bachelorproef_AMP\\python\\bachelorproef github\\csv_files\\AMP_collection_cleaned.csv')
+
+# Replace underscores with spaces in the 'Species' column of the collection DataFrame
+collection_df['Species'] = collection_df['Species'].str.replace('_', ' ')
+
+# Merge the two DataFrames on 'ScientificName' and 'Species'
+df_merged = pd.merge(cox1_df, collection_df, left_on='ScientificName', right_on='Species', how='inner')
 
 
 # List of descriptions to include
@@ -59,16 +68,7 @@ def process_parameter(i):
     # Filter the DataFrame for the current parameter
     df_parameter = filtered_df[filtered_df['Description'] == parameter_description].copy()
     
-    # Check if max/min ratio is less than 10,000
-    max_value = summary_df.loc[i, 'Max']
-    min_value = summary_df.loc[i, 'Min']
-    #use_log = (max_value / min_value) >= 10000
-
-    # Use log-transformed or normal values based on the condition
-    #if use_log:
     df_parameter['Target'] = np.log(df_parameter['Observed'])
-   #else:
-    #    df_parameter['Target'] = df_parameter['Observed']
     
     df_parameter_selection = df_parameter[['Description', 'Target', 'Predicted', 'Species', 'Unit', 'sequentie']]
     df_parameter_selection = df_parameter_selection.rename(columns={"Species": "ID"})
@@ -97,9 +97,6 @@ def process_parameter(i):
     X = X.fillna(0)
     y = y.fillna(0)
 
-    # Train the model and perform cross-validation
-    model = XGBRegressor(n_estimators=500, learning_rate=0.05, max_depth=2)
-    kf = KFold(n_splits=5, shuffle=True)
     # Train the model and perform cross-validation
     model = XGBRegressor(n_estimators=500, learning_rate=0.05, max_depth=2)
     kf = KFold(n_splits=5, shuffle=True)
@@ -145,32 +142,48 @@ plt.xticks(rotation=90)
 plt.tight_layout()
 plt.show()
 
-# Plot the MSE scores as a bar graph
-plt.figure(figsize=(10, 6))
-plt.bar(results_df['Parameter'], results_df['MSE'], color='lightcoral')
-plt.xlabel('Parameter')
-plt.ylabel('Mean Squared Error (MSE)')
-plt.title('MSE for Each Parameter')
-plt.xticks(rotation=90)
-plt.tight_layout()
-plt.show()
 
-# Plot the RMSE scores as a bar graph
-plt.figure(figsize=(10, 6))
-plt.bar(results_df['Parameter'], results_df['RMSE'], color='mediumseagreen')
-plt.xlabel('Parameter')
-plt.ylabel('Root Mean Squared Error (RMSE)')
-plt.title('RMSE for Each Parameter')
-plt.xticks(rotation=90)
-plt.tight_layout()
-plt.show()
 
-# Plot the MAE scores as a bar graph
-plt.figure(figsize=(10, 6))
-plt.bar(results_df['Parameter'], results_df['MAE'], color='gold')
-plt.xlabel('Parameter')
-plt.ylabel('Mean Absolute Error (MAE)')
-plt.title('MAE for Each Parameter')
-plt.xticks(rotation=90)
-plt.tight_layout()
-plt.show()
+cleaned_df = df_merged[df_merged['Description'] == 'lifespan']
+lifespan_data = cleaned_df[['Species', 'Observed','sequentie']]
+# Prepare to store mean CV scores
+mean_cv_scores = []
+
+# Define k-mer lengths to test
+kmer_lengths = [5]
+
+for k in kmer_lengths:
+    kmer_features = []
+    
+    # Extract k-mer features for each sequence
+    for seq in lifespan_data['sequentie']:
+        sequence = str(seq)
+        kmer_feature = get_kmers(sequence, k)
+        kmer_features.append(kmer_feature)
+    
+    # Convert k-mer features to a DataFrame
+    kmer_df = pd.DataFrame(kmer_features).fillna(0)
+    
+    # Filter out columns with invalid k-mers
+    valid_kmer_columns = [column for column in kmer_df.columns if is_valid_kmer(column)]
+    filtered_kmer_df = kmer_df[valid_kmer_columns]
+    
+    # Combine features with the merged DataFrame
+    df = pd.concat([lifespan_data, filtered_kmer_df], axis=1)
+
+    # Prepare the data
+    feature_columns = list(filtered_kmer_df.columns)  # Use k-mer features as predictors
+    X = df[feature_columns]
+    y = df['Observed']  # Use 'Observed' as the target variable
+
+    # Ensure there are no missing values
+    X = X.fillna(0)
+    y = y.fillna(0)
+
+    # Train the XGBoost model
+    model = XGBRegressor(n_estimators=100, learning_rate=0.1, max_depth=4)
+    
+    # Perform cross-validation
+    kf = KFold(n_splits=5, shuffle=True)
+    cv_scores = cross_val_score(model, X, y, cv=kf, scoring='r2')  # Use R² as the scoring metric
+    mean_cv_scores.append(cv_scores.mean())
