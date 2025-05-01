@@ -1,0 +1,16 @@
+Parameter,score,info
+v,0.1225549179726087,log gebruikt voor regressie
+E_Hb,0.5274974698992205,log gebruikt voor regressie
+s_G,0.723892230576441,behandeld als een classificatie probleem
+p_Am,0.3114431955570952,log gebruikt voor regressie
+E_Hp,0.3421594689320339,log gebruikt voor regressie
+p_M,0.2163708298761508,log gebruikt voor regressie
+T_A,0.8464210526315789,behandeld als een classificatie probleem
+kap_P,0.9619799498746868,behandeld als een classificatie probleem
+h_a,0.3141724097280424,log gebruikt voor regressie
+E_G,0.627305098235769,geen log gebruikt voor regressie
+kap_R,0.9624812030075188,behandeld als een classificatie probleem
+kap_X,0.93996992481203,behandeld als een classificatie probleem
+F_m,0.9904974937343358,behandeld als een classificatie probleem
+p_T,0.999,behandeld als een classificatie probleem
+kap,0.0455748457541809,geen log gebruikt voor regressie

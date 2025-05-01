@@ -2,7 +2,6 @@ import pandas as pd
 import os
 from sklearn.model_selection import cross_val_score, KFold
 from sklearn.ensemble import RandomForestClassifier
-from xgboost import XGBRegressor
 from collections import Counter
 import matplotlib.pyplot as plt
 import numpy as np
@@ -32,7 +31,7 @@ def is_valid_kmer(kmer):
 
 mean_cv_scores = []
 
-kmer_lengths =[2]*30 + [3]*30 + [4]*30 + [5]*30 + [6]*30
+kmer_lengths =[2]*10 + [3]*10 + [4]*10 + [5]*10 + [6]*10
 
 for i in kmer_lengths:
     features = []
@@ -63,9 +62,9 @@ for i in kmer_lengths:
     # Split the data into training and testing sets
     
     # Train the Random Forest model
-    model = RandomForestClassifier(n_estimators=100)
+    model = RandomForestClassifier(n_estimators=300)
     # Perform cross-validation
-    kf = KFold(n_splits=5, shuffle=True)
+    kf = KFold(n_splits=2, shuffle=True)
     cv_scores = cross_val_score(model, X, y, cv=kf, scoring='accuracy')
     mean_cv_scores.append(cv_scores.mean())
 
@@ -81,71 +80,183 @@ plt.ylabel('Mean CV Score')
 plt.show()
 
 
-cleaned_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/AMP_collection_cleaned.csv'))
-cleaned_df = cleaned_df[cleaned_df['Description'] == 'lifespan']
-lifespan_data = cleaned_df[['Species', 'Observed']]
 
-# Merge the DataFrames
-merged_df = pd.merge(sequences_df, animals_df, on='Gene_ID', how='inner')  # Merge on 'ID'
-merged_df = pd.merge(merged_df, lifespan_data, left_on='ID',right_on='Species')  # Merge on 'Animal'
 
-# Prepare to store mean CV scores
-mean_cv_scores = []
+# Initialize lists to store results
+mean_training_scores = []  # To store training accuracy
+mean_validation_scores = []  # To store validation accuracy
 
-# Define k-mer lengths to test
-kmer_lengths = [5]
-
-for k in kmer_lengths:
+kmer_lengths = [1] + [2] + [3] + [4] + [5] + [6] + [7] + [8] + [9] + [10] + [11]
+for i in kmer_lengths:
+    features = []
     kmer_features = []
-    
-    # Extract k-mer features for each sequence
+    # Process each sequence one by one
     for seq in merged_df['sequentie']:
         sequence = str(seq)
-        kmer_feature = get_kmers(sequence, k)
+        kmer_feature = get_kmers(sequence, i)
         kmer_features.append(kmer_feature)
-    
     # Convert k-mer features to a DataFrame
     kmer_df = pd.DataFrame(kmer_features).fillna(0)
-    
     # Filter out columns with invalid k-mers
     valid_kmer_columns = [column for column in kmer_df.columns if is_valid_kmer(column)]
     filtered_kmer_df = kmer_df[valid_kmer_columns]
-    
     # Combine features with the merged DataFrame
     df = pd.concat([merged_df, filtered_kmer_df], axis=1)
 
     # Prepare the data
-    feature_columns = list(filtered_kmer_df.columns)  # Use k-mer features as predictors
+    feature_columns = list(filtered_kmer_df.columns)
     X = df[feature_columns]
-    y = df['Observed']  # Use 'Observed' as the target variable
+    y = df['Mod']  # Replace with your target column
 
     # Ensure there are no missing values
     X = X.fillna(0)
-    y = y.fillna(0)
 
-    # Train the XGBoost model
-    model = XGBRegressor(n_estimators=100, learning_rate=0.1, max_depth=4)
-    
     # Perform cross-validation
-    kf = KFold(n_splits=5, shuffle=True, random_state=37)
-    cv_scores = cross_val_score(model, X, y, cv=kf, scoring='r2')  # Use R² as the scoring metric
-    mean_cv_scores.append(cv_scores.mean())
+    kf = KFold(n_splits=2, shuffle=True)
+    training_scores = []  # To store training accuracy for each fold
+    validation_scores = []  # To store validation accuracy for each fold
 
-# Create a DataFrame for the results
-cross_validation_df = pd.DataFrame({'kmer_length': kmer_lengths, 'mean_cv_scores': mean_cv_scores})
+    for train_index, test_index in kf.split(X):
+        # Split the data into training and testing sets
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
 
-# Plot the results
+        # Train the Random Forest model
+        model = RandomForestClassifier(n_estimators=300)
+        model.fit(X_train, y_train)
+
+        # Calculate training accuracy
+        training_accuracy = model.score(X_train, y_train)
+        training_scores.append(training_accuracy)
+
+        # Calculate validation accuracy
+        validation_accuracy = model.score(X_test, y_test)
+        validation_scores.append(validation_accuracy)
+
+    # Store the mean training and validation accuracy for this k-mer length
+    mean_training_scores.append(np.mean(training_scores))
+    mean_validation_scores.append(np.mean(validation_scores))
+
+# Save results to a DataFrame
+accuracy_df = pd.DataFrame({
+    'kmer_length': kmer_lengths,
+    'mean_training_scores': mean_training_scores,
+    'mean_validation_scores': mean_validation_scores
+})
+
+# Plot training vs validation accuracy
 plt.figure(figsize=(10, 6))
-plt.bar(cross_validation_df['kmer_length'], cross_validation_df['mean_cv_scores'], color='skyblue')
-plt.title('Mean CV R² Scores for Different k-mer Lengths')
+plt.plot(accuracy_df['kmer_length'], accuracy_df['mean_training_scores'], label='Training Accuracy', marker='o', color='blue')
+plt.plot(accuracy_df['kmer_length'], accuracy_df['mean_validation_scores'], label='Validation Accuracy', marker='o', color='orange')
+plt.title('Training vs Validation Accuracy for Different k-mer Lengths')
 plt.xlabel('k-mer Length')
-plt.ylabel('Mean CV R² Score')
-plt.xticks(kmer_lengths)
-plt.tight_layout()
+plt.ylabel('Accuracy')
+plt.legend()
+plt.grid()
 plt.show()
 
 
 
+import pandas as pd
+import os
+from sklearn.model_selection import cross_val_score, KFold
+from sklearn.tree import DecisionTreeClassifier
+from collections import Counter
+import matplotlib.pyplot as plt
+import numpy as np
+
+script_dir = os.path.dirname(__file__)
+
+# Load the CSV files
+sequences_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/gene_seq_12SrRNA_final.csv'))  # Contains sequence and ID
+animals_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/gene_IDS_12SrRNA_final.csv'))  # Contains ID and animal information
+characteristics_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/AMP_species_list.csv'))  # Contains animal and characteristic
+
+# Merge the DataFrames
+merged_df = pd.merge(sequences_df, animals_df, on='Gene_ID', how='inner')  # Merge on 'ID'
+merged_df = pd.merge(merged_df, characteristics_df, on='ID', how='inner')  # Merge on 'Animal'
+
+# Function to extract k-mer counts from a sequence
+def get_kmers(sequence, k):
+    kmers = [sequence[j:j+k] for j in range(len(sequence) - k + 1)]
+    return Counter(kmers)
+
+# Function to check if a k-mer contains only A, C, T, or G
+def is_valid_kmer(kmer):
+    valid_bases = {'A', 'C', 'T', 'G'}
+    return all(base in valid_bases for base in kmer)
 
 
+# Initialize lists to store results
+mean_training_scores = []  # To store training accuracy
+mean_validation_scores = []  # To store validation accuracy
 
+kmer_lengths = [2, 3, 4, 5, 6, 7, 8, 9]
+
+for i in kmer_lengths:
+    features = []
+    kmer_features = []
+    # Process each sequence one by one
+    for seq in merged_df['sequentie']:
+        sequence = str(seq)
+        kmer_feature = get_kmers(sequence, i)
+        kmer_features.append(kmer_feature)
+    # Convert k-mer features to a DataFrame
+    kmer_df = pd.DataFrame(kmer_features).fillna(0)
+    # Filter out columns with invalid k-mers
+    valid_kmer_columns = [column for column in kmer_df.columns if is_valid_kmer(column)]
+    filtered_kmer_df = kmer_df[valid_kmer_columns]
+    # Combine features with the merged DataFrame
+    df = pd.concat([merged_df, filtered_kmer_df], axis=1)
+
+    # Prepare the data
+    feature_columns = list(filtered_kmer_df.columns)
+    X = df[feature_columns]
+    y = df['Mod']  # Replace with your target column
+
+    # Ensure there are no missing values
+    X = X.fillna(0)
+
+    # Perform cross-validation
+    kf = KFold(n_splits=2, shuffle=True)
+    training_scores = []  # To store training accuracy for each fold
+    validation_scores = []  # To store validation accuracy for each fold
+
+    for train_index, test_index in kf.split(X):
+        # Split the data into training and testing sets
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+
+        # Train the Decision Tree model
+        model = DecisionTreeClassifier(random_state=42)
+        model.fit(X_train, y_train)
+
+        # Calculate training accuracy
+        training_accuracy = model.score(X_train, y_train)
+        training_scores.append(training_accuracy)
+
+        # Calculate validation accuracy
+        validation_accuracy = model.score(X_test, y_test)
+        validation_scores.append(validation_accuracy)
+
+    # Store the mean training and validation accuracy for this k-mer length
+    mean_training_scores.append(np.mean(training_scores))
+    mean_validation_scores.append(np.mean(validation_scores))
+
+# Save results to a DataFrame
+accuracy_df = pd.DataFrame({
+    'kmer_length': kmer_lengths,
+    'mean_training_scores': mean_training_scores,
+    'mean_validation_scores': mean_validation_scores
+})
+
+# Plot training vs validation accuracy
+plt.figure(figsize=(10, 6))
+plt.plot(accuracy_df['kmer_length'], accuracy_df['mean_training_scores'], label='Training Accuracy', marker='o', color='blue')
+plt.plot(accuracy_df['kmer_length'], accuracy_df['mean_validation_scores'], label='Validation Accuracy', marker='o', color='orange')
+plt.title('Training vs Validation Accuracy for Different k-mer Lengths (Decision Tree)')
+plt.xlabel('k-mer Length')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.grid()
+plt.show()
