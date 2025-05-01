@@ -6,10 +6,12 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from collections import Counter
 import joblib
 import matplotlib.pyplot as plt
+import numpy as np
+
 script_dir = os.path.dirname(__file__)
 
 # Function to extract k-mer counts from a sequence
-def get_kmers(sequence, k=5):
+def get_kmers(sequence, k=6):
     kmers = [sequence[i:i+k] for i in range(len(sequence) - k + 1)]
     return Counter(kmers)
 
@@ -70,7 +72,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random
 # Train the Random Forest model
 model = RandomForestClassifier(n_estimators=100, random_state=37)
 # Perform cross-validation
-rkf = RepeatedKFold(n_splits=7, n_repeats=3, random_state=37)
+rkf = RepeatedKFold(n_splits=7, n_repeats=3 , random_state=37)
 cv_scores = cross_val_score(model, X, y, cv=rkf, scoring='accuracy')
 
 # Print cross-validation results

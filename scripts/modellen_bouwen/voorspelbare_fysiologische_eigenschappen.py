@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import cross_val_score, KFold
 from sklearn.metrics import r2_score
 import numpy as np
+from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from xgboost import XGBRegressor
 from joblib import Parallel, delayed
 
@@ -68,7 +69,17 @@ def process_parameter(i):
     # Filter the DataFrame for the current parameter
     df_parameter = filtered_df[filtered_df['Description'] == parameter_description].copy()
     
-    df_parameter['Target'] = np.log(df_parameter['Observed'])
+    # Check if max/min > 1000 for the current parameter
+    max_value = summary_df.loc[i, 'Max']
+    min_value = summary_df.loc[i, 'Min']
+    if max_value / min_value > 1000:
+        # Use log transformation if the condition is met
+        df_parameter['Target'] = np.log(df_parameter['Observed'])
+        use_log = True
+    else:
+        # Use the raw values otherwise
+        df_parameter['Target'] = df_parameter['Observed']
+        use_log = False
     
     df_parameter_selection = df_parameter[['Description', 'Target', 'Predicted', 'Species', 'Unit', 'sequentie']]
     df_parameter_selection = df_parameter_selection.rename(columns={"Species": "ID"})
@@ -102,13 +113,14 @@ def process_parameter(i):
     y = y.fillna(0)
 
     # Train the model and perform cross-validation
-    model = XGBRegressor(n_estimators=500, learning_rate=0.05, max_depth=2)
+    model = GradientBoostingRegressor(n_estimators=200, learning_rate=0.05, max_depth=2) 
+    # model = RandomForestRegressor(n_estimators= 200, max_depth=5, random_state=42, n_jobs=-1)
     kf = KFold(n_splits=5, shuffle=True)
 
     # Cross-validation for R^2, MSE, and MAE
     cv_r2_scores = cross_val_score(model, X, y, cv=kf, scoring='r2')
     cv_mse_scores = -cross_val_score(model, X, y, cv=kf, scoring='neg_mean_squared_error')  # Convert negative MSE to positive
-    
+
     # Calculate RMSE from MSE
     cv_rmse_scores = np.sqrt(cv_mse_scores)
 
@@ -119,7 +131,7 @@ def process_parameter(i):
         'RMSE': cv_rmse_scores.mean(),
         'R^2': cv_r2_scores.mean(),
         'amount of data': datacount,
-        #'use_log': use_log  
+        'use_log': use_log  
     }
 
 # Process each parameter in parallel
