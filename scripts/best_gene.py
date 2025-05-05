@@ -1,10 +1,10 @@
 import pandas as pd
 import os
-from sklearn.model_selection import train_test_split, cross_val_score, RepeatedKFold
+from sklearn.model_selection import cross_val_score, RepeatedKFold
 from sklearn.ensemble import RandomForestClassifier
 from collections import Counter
 import matplotlib.pyplot as plt
-from scipy.stats import ttest_ind, levene, probplot, f_oneway
+from scipy.stats import ttest_ind, probplot, f_oneway
 script_dir = os.path.dirname(__file__)
 
 # Function to extract k-mer counts from a sequence

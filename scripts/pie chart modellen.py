@@ -7,7 +7,7 @@ script_dir = os.path.dirname(__file__)
 
 # inlezen nodige data
 species = pd.read_csv(os.path.join(script_dir, '../csv_files/AMP_species_list.csv'))
-species = pd.read_csv(os.path.join(script_dir, '../csv_files/AMP_species_list_12SrRNA.csv'))
+species = pd.read_csv(os.path.join(script_dir, '../csv_files/mitofish_sequences.csv'))
 
 # modellen uit data frame halen
 models = species[['Mod']]
@@ -39,7 +39,7 @@ ax.pie(occurences, labels=labels, labeldistance=None)
 ax.legend(loc='center left', labels=label, bbox_to_anchor=(-0.3, 0.5))
 
 # Titel toevoegen
-ax.set_title('modelverdeling 12SrRNA Dataset', loc='center')
+ax.set_title('modelverdeling mitofish Dataset', loc='center')
 
 # eventueel opslaan van de figuur 
-plt.savefig(os.path.join(script_dir, '../grafieken/piechart_modellen_12SrRNA.png'), bbox_inches='tight')
+plt.savefig(os.path.join(script_dir, '../grafieken/piechart_modellen_mitofish.png'), bbox_inches='tight')

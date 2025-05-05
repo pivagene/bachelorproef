@@ -4,9 +4,9 @@ import os
 
 script_dir = os.path.dirname(__file__)
 
-# altijd eigen email meegeven
-Entrez.email = "lars.prvte@gmail.com"
-Entrez.api_key = "7d69d81fcd4a1d8a414cf6dce34c16fc2a09"
+# NCBI requires an email
+Entrez.email = "your@email.com"
+Entrez.api_key = "your_API"  
 
 # functie om gene id op te halen
 def get_gene_id(id, gene_name):
