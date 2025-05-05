@@ -1,4 +1,3 @@
-
 import pandas as pd
 import subprocess
 import os
@@ -11,8 +10,7 @@ from sklearn.model_selection import train_test_split, cross_val_score, KFold
 from sklearn.metrics import mean_squared_error, r2_score, median_absolute_error
 import numpy as np
 import joblib
-import xgboost as xgb
-from xgboost import XGBRegressor
+from sklearn.ensemble import GradientBoostingRegressor
 
 script_dir = os.path.dirname(__file__)
 
@@ -80,9 +78,9 @@ y = y.fillna(0)
 # Split the data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=30)
 
-# Train the Random Forest model
-model = XGBRegressor(n_estimators=500, learning_rate=0.05, max_depth=2, random_state=42)
-# xgboost package gebruiken
+# Train the Gradient Boosting Regressor model
+model = GradientBoostingRegressor(n_estimators=500, learning_rate=0.05, max_depth=2, random_state=42)
+
 # Perform cross-validation
 kf = KFold(n_splits=5, shuffle=True, random_state=42)
 cv_mse_scores = cross_val_score(model, X, y, cv=kf, scoring='neg_mean_squared_error')
@@ -95,7 +93,6 @@ print(f'Cross-Validation Standard Deviation: {cv_mse_scores.std()}')
 
 print(f'Cross-Validation R^2 Score: {cv_r2_scores.mean()}')
 print(f'Cross-Validation Standard Deviation (R^2): {cv_r2_scores.std()}')
-
 
 # Fit the model on the entire training set
 model.fit(X_train, y_train)

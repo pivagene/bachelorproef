@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split, cross_val_score, RepeatedK
 from sklearn.ensemble import RandomForestClassifier
 from collections import Counter
 import matplotlib.pyplot as plt
-from scipy.stats import ttest_ind, levene
+from scipy.stats import ttest_ind, levene, probplot, f_oneway
 script_dir = os.path.dirname(__file__)
 
 # Function to extract k-mer counts from a sequence
@@ -95,24 +95,35 @@ for _ in range(20):
     cv_means_list['mitofish'].append(mitofish_scores.mean())
 
 # Plot the means of the cross-validation scores
-plt.boxplot([cv_means_list['COX1'], cv_means_list['12S rRNA'], cv_means_list['mitofish']], labels=['COX1', 'rRNA', 'mitofish'])
-plt.title('Cross-Validation Mean Score Comparison (20 Repeats)')
+plt.boxplot([cv_means_list['COX1'], cv_means_list['12S rRNA'], cv_means_list['mitofish']], labels=['COX1', '12S rRNA', 'mitogenoom'])
+plt.title('Cross-Validation Mean accuracy Comparison (20 Repeats)')
 plt.ylabel('Mean Accuracy')
 plt.show()
 
 print("Cross-Validation Means (20 Repeats):")
 for gene, means in cv_means_list.items():
     print(f"{gene}: {means}")
+    print(f"Average {gene}: {sum(means) / len(means):.4f}")
 
-# Check variances using Levene's test
-_, p_levene_rRNA_vs_mitofish = levene(cv_means_list['12S rRNA'], cv_means_list['mitofish'])
-_, p_levene_rRNA_vs_COX1 = levene(cv_means_list['12S rRNA'], cv_means_list['COX1'])
-_, p_levene_COX1_vs_mitofish = levene(cv_means_list['COX1'], cv_means_list['mitofish'])
+# Generate QQ plots for normality checks
+plt.figure(figsize=(12, 4))
+for i, (gene, means) in enumerate(cv_means_list.items(), start=1):
+    plt.subplot(1, 3, i)
+    probplot(means, dist="norm", plot=plt)
+    plt.title(f"QQ Plot for {gene}")
 
-# Determine equal_var parameter based on Levene's test
-equal_var_rRNA_vs_mitofish = p_levene_rRNA_vs_mitofish >= 0.05
-equal_var_rRNA_vs_COX1 = p_levene_rRNA_vs_COX1 >= 0.05
-equal_var_COX1_vs_mitofish = p_levene_COX1_vs_mitofish >= 0.05
+plt.tight_layout()
+plt.show()
+
+# Perform F-tests for variance comparison
+f_stat_rRNA_vs_mitofish, p_value_rRNA_vs_mitofish = f_oneway(cv_means_list['12S rRNA'], cv_means_list['mitofish'])
+f_stat_rRNA_vs_COX1, p_value_rRNA_vs_COX1 = f_oneway(cv_means_list['12S rRNA'], cv_means_list['COX1'])
+f_stat_COX1_vs_mitofish, p_value_COX1_vs_mitofish = f_oneway(cv_means_list['COX1'], cv_means_list['mitofish'])
+
+# Determine equal_var parameter based on F-test p-values
+equal_var_rRNA_vs_mitofish = p_value_rRNA_vs_mitofish >= 0.05
+equal_var_rRNA_vs_COX1 = p_value_rRNA_vs_COX1 >= 0.05
+equal_var_COX1_vs_mitofish = p_value_COX1_vs_mitofish >= 0.05
 
 # Perform one-sided t-tests
 t_stat_rRNA_vs_mitofish, p_value_rRNA_vs_mitofish = ttest_ind(cv_means_list['12S rRNA'], cv_means_list['mitofish'], equal_var=equal_var_rRNA_vs_mitofish, alternative='greater')

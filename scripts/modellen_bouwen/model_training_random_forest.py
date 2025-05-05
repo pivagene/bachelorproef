@@ -23,8 +23,6 @@ characteristics_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/AMP_s
 merged_df = pd.merge(sequences_df, animals_df, on='Gene_ID', how='inner')  # Merge on 'ID'
 merged_df = pd.merge(merged_df, characteristics_df, on='ID', how='inner')  # Merge on 'Animal'
 merged_df = merged_df[merged_df['Phylum'] == 'Chordata']
-# merged_df.to_csv(os.path.join(script_dir, '../../csv_files/AMP_species_list_COX1.csv'), index=False)
-# merged_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/mitofish_sequences.csv'))
 # Extract features from the FASTA sequences
 kmer_features = []
 #blast_scores = []
@@ -122,6 +120,3 @@ misclassified = misclassified.merge(df[['Gene_ID', 'ID']], left_index=True, righ
 misclassified_false = misclassified[misclassified['Correct'] == False]
 
 misclassified_false.to_csv(os.path.join(script_dir,'../../csv_files/misclassified_instances.csv'), index=False)
-
-# cohens kappa sore voor class descrapency
-# terugwerken van wat interessant is om te vertellen tijdens de verdediging nut van genomische data onderzoeksvragen

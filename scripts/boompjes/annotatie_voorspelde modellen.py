@@ -7,8 +7,8 @@ from joblib import Parallel, delayed
 script_dir = os.path.dirname(__file__)
 
 # Load the data
-sequences_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/gene_seq_COX1_final.csv'))  # Contains sequence and ID
-animals_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/gene_IDS_COX1_final.csv'))  # Contains ID and animal information
+sequences_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/gene_seq_12SrRNA_final.csv'))  # Contains sequence and ID
+animals_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/gene_IDS_12SrRNA_final.csv'))  # Contains ID and animal information
 characteristics_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/AMP_species_list.csv'))  # Contains animal and characteristic
 
 # Merge the DataFrames
@@ -57,7 +57,7 @@ print("LOOCV completed. Saving predictions...")
 results_df = pd.DataFrame(results, columns=['ID', 'True_Label', 'Predicted_Label'])
 
 # Save predictions to a CSV file
-results_csv = os.path.join(script_dir, '../../csv_files/LOOCV_predictions_COX1.csv')
+results_csv = os.path.join(script_dir, '../../csv_files/LOOCV_predictions_12SrRNA.csv')
 results_df.to_csv(results_csv, index=False)
 
 # Calculate accuracy of predictions
@@ -85,7 +85,7 @@ def model_to_color(model):
     return color_mapping.get(model, '#000000')  # Default to black if model is not in the mapping
 
 # Create the annotation file
-annotation_file = os.path.join(script_dir, 'COX1_LOOCV_model_annotations.txt')
+annotation_file = os.path.join(script_dir, '12SrRNA_LOOCV_model_annotations.txt')
 
 with open(annotation_file, 'w') as f:
     f.write('DATASET_COLORSTRIP\n')

@@ -65,15 +65,6 @@ def compute_cv_mean():
 
 # Run cross-validation 30 times in parallel
 cv_scores_means = Parallel(n_jobs=-1)(delayed(compute_cv_mean)() for _ in range(30))
-
-# Create a boxplot of the 30 cv_scores_mean values
-plt.figure(figsize=(10, 6))
-plt.boxplot(cv_scores_means, labels=['Repeated CV'])
-plt.title('Boxplot of Repeated Cross-Validation Mean Scores')
-plt.ylabel('Mean Accuracy')
-plt.show()
-
-
 chordata_df = merged_df[merged_df['Phylum'] == 'Chordata'].copy()   
 
 # Precompute k-mer features for all sequences
@@ -106,11 +97,15 @@ y_chordata = df_chordata['Mod'].to_numpy()  # Convert to NumPy array for faster 
 # Ensure there are no missing values
 X_chordata = np.nan_to_num(X_chordata)
 
+# Ensure there are no missing values in X_chordata and y_chordata
+valid_indices = ~np.isnan(X_chordata).any(axis=1) & ~pd.isnull(y_chordata)
+X_chordata = X_chordata[valid_indices]
+y_chordata = y_chordata[valid_indices]
+
 # Perform cross-validation 30 times and store the mean scores
 cv_scores_means_chordata = []
 rkf = RepeatedKFold(n_splits=7, n_repeats=3)  # Define cross-validation strategy
 model = RandomForestClassifier(n_estimators=100)  # Define the model
-
 
 def compute_cv_mean_chordata():
     cv_scores = cross_val_score(model, X_chordata, y_chordata, cv=rkf, scoring='accuracy', n_jobs=-1)
@@ -119,10 +114,9 @@ def compute_cv_mean_chordata():
 # Run cross-validation 30 times in parallel
 cv_scores_means_chordata = Parallel(n_jobs=-1)(delayed(compute_cv_mean_chordata)() for _ in range(30))
 
-
-# Create a boxplot of the 30 cv_scores_mean values
+# Create a combined boxplot of the 30 cv_scores_mean values for both datasets
 plt.figure(figsize=(10, 6))
-plt.boxplot(cv_scores_means, labels=['Repeated CV'])
+plt.boxplot([cv_scores_means, cv_scores_means_chordata], labels=['All Data', 'Chordata'])
 plt.title('Boxplot of Repeated Cross-Validation Mean Scores')
 plt.ylabel('Mean Accuracy')
 plt.show()

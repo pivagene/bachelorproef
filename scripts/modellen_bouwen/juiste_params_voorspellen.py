@@ -2,7 +2,7 @@ import pandas as pd
 import os
 from sklearn.model_selection import train_test_split, cross_val_score, KFold
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
-from xgboost import XGBRegressor
+from sklearn.ensemble import GradientBoostingRegressor
 from collections import Counter
 import numpy as np
 
@@ -10,22 +10,22 @@ import numpy as np
 script_dir = os.path.dirname(__file__)
 
 # Function to extract k-mer counts from a sequence
-def get_kmers(sequence, k=6):
+def get_kmers(sequence, k=5):
     kmers = [sequence[i:i+k] for i in range(len(sequence) - k + 1)]
     return Counter(kmers)
 
 # Load the CSV files
-sequences_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/gene_seq_COX1_final.csv'))  # Contains sequence and ID
-animals_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/gene_IDS_COX1_final.csv'))  # Contains ID and animal information
-characteristics_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/AMP_tref_pd_estimates.csv'))  # Contains animal and characteristic
-characteristics_df['Species'] = characteristics_df['Species'].str.replace(' ', '_', regex=False)
+sequences_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/gene_seq_12SrRNA_final.csv'))  # Contains sequence and ID
+animals_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/gene_IDS_12SrRNA_final.csv'))  # Contains ID and animal information
+characteristics_df = pd.read_csv(os.path.join(script_dir, '../../csv_files/AMP_tref_parameters.csv'))  # Contains animal and characteristic
+characteristics_df['ID'] = characteristics_df['ID'].str.replace(' ', '_', regex=False)
 
 # Merge the DataFrames
 merged_df = pd.merge(sequences_df, animals_df, on='Gene_ID', how='inner')  # Merge on 'Gene_ID'
-merged_df = pd.merge(merged_df, characteristics_df, left_on='ID', right_on='Species')  # Merge on 'ID'
+merged_df = pd.merge(merged_df, characteristics_df, left_on='ID', right_on='ID')  # Merge on 'ID'
 
 # Ensure the target column 'v' exists and drop rows with missing values in 'v'
-merged_df = merged_df.dropna(subset=['p_M'])
+merged_df = merged_df.dropna(subset=['k_E']) #p_Am,E_Hp,p_M,T_A,kap_P,h_a,v,E_G,kap_R,kap_X,k_J,F_m,p_T,kap,E_Hj(0.15),E_Hs,E_Hx,t_0,E_Rj,kap_V,E_He,s_j,t_sj,k_E
 
 # Extract k-mer features from the DNA sequences
 kmer_features = []
@@ -58,11 +58,11 @@ feature_columns = list(filtered_kmer_df.columns)  # Use filtered k-mer features
 X = df[feature_columns]
 y = df['p_M'] 
 
-# Train the XGBoost model
-model = XGBRegressor(n_estimators=500, learning_rate=0.01, max_depth=4)
+# Train the Gradient Boosting Regressor model
+model = GradientBoostingRegressor(n_estimators=200, learning_rate=0.01, max_depth=4, random_state=42)
 
 # Perform cross-validation
-kf = KFold(n_splits=5, shuffle=True)
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
 cv_r2_scores = cross_val_score(model, X, y, cv=kf, scoring='r2')
 print(f"Cross-Validation R² Scores: {cv_r2_scores}")
 print(f"Mean Cross-Validation R² Score: {cv_r2_scores.mean()}")
