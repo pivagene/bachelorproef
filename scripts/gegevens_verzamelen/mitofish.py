@@ -2,6 +2,8 @@ import os
 from Bio import SeqIO
 import pandas as pd
 
+script_dir = os.path.dirname(__file__)
+
 # Function to extract scientific name from the description
 def extract_scientific_name(description):
     # Split the description by '|'
@@ -15,7 +17,7 @@ def extract_scientific_name(description):
     return None
 
 # Replace 'your_folder_path' with the actual folder path containing the FASTA files
-folder_path = r'C:\Users\Gebruiker\Desktop\test python\wetransfer_bachelorproef_amp_2024-11-07_1055\Bachelorproef_AMP\bachelorproef\data'
+folder_path = r'C:\Users\Gebruiker\Desktop\test python\wetransfer_bachelorproef_amp_2024-11-07_1055\Bachelorproef_AMP\bachelorproef\mitofish_data'
 
 # Lists to store the extracted information
 animal_names = []
@@ -41,7 +43,7 @@ df = pd.DataFrame({
 })
 
 # Read the second DataFrame containing more scientific names
-df_more_names = pd.read_csv('AMP_species_list.csv')  # Replace with the actual path to your second DataFrame
+df_more_names = pd.read_csv(os.path.join(script_dir, '../../csv_files/AMP_species_list.csv'))
 
 # Merge the two DataFrames on the 'Scientific_Name' column
 merged_df = pd.merge(df, df_more_names, on='ID', how='inner')

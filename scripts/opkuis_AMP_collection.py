@@ -8,7 +8,7 @@ AMP_collection = pd.read_csv(os.path.join(script_dir, '../csv_files/AMP_collecti
 #general cleanup
 AMP_collection['Description'] = AMP_collection['Description'].str.lower()
 
-##typfouten
+#typfouten
 AMP_collection['Description'] = AMP_collection['Description'].str.replace('intitial', 'initial', regex=False)
 AMP_collection['Description'] = AMP_collection['Description'].str.replace(' initial', 'initial', regex=False)
 AMP_collection['Description'] = AMP_collection['Description'].str.replace('initital ', 'initial ', regex=False)

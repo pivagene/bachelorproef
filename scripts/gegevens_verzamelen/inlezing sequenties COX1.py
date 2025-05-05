@@ -1,13 +1,11 @@
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
 from Bio import Entrez, SeqIO
 import os
 
 script_dir = os.path.dirname(__file__)
 
-Entrez.email = "lars.prvte@gmail.com"
-Entrez.api_key = "7d69d81fcd4a1d8a414cf6dce34c16fc2a09"  # Required for NCBI API
+Entrez.email = "your@email.com"
+Entrez.api_key = "your_API"  
 
 def get_gene_summary(gene_id):
     """Fetch the gene summary from NCBI using Entrez.esummary."""
